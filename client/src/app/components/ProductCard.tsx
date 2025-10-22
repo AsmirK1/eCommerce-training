@@ -1,1 +1,0 @@
-/* shows preview (image, price, link to details) */
