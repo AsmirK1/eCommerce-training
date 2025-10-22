@@ -1,0 +1,1 @@
+/* shows details for one specific product */
