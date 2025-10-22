@@ -1,0 +1,1 @@
+/* shows category preview (image, name, link to products) */
