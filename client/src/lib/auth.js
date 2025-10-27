@@ -142,3 +142,7 @@ export function validatePassword(password) {
     message: 'Password is valid'
   };
 }
+
+
+// http://localhost:3001/api/auth/register
+// http://localhost:3001/api/auth/login

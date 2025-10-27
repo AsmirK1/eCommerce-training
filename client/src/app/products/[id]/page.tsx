@@ -3,19 +3,22 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { useCart } from "@/app/context/CartContext";
+
 
 type Product = {
   id: number;
   title: string;
   price: number;
   description: string;
-  images: string[];
+  images: string;
 };
 
 export default function ProductDetailsPage() {
   const { id } = useParams();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
+  const {addToCart} = useCart(); 
 
   useEffect(() => {
     async function fetchProduct() {
@@ -55,10 +58,25 @@ export default function ProductDetailsPage() {
             {product.description || "No description available."}
           </p>
 
-          <div className="flex justify-center gap-4">
-            <button className="px-6 py-2 rounded-full bg-gradient-to-r from-pink-600 to-purple-600 text-white font-semibold hover:brightness-110 transition">
+        <div className="flex justify-center gap-4">
+          {product ? (
+            <button
+              className="px-6 py-2 rounded-full bg-gradient-to-r from-pink-600 to-purple-600 text-white font-semibold hover:brightness-110 transition"
+              onClick={() =>
+                addToCart({
+                  id: product.id,
+                  name: product.title,
+                  price: product.price,
+                  image: product.images,
+                  amount:1
+                })
+              }
+            >
               Add to Cart ✨
             </button>
+          ) : (
+            <div>No Product</div>
+          )}
 
             <Link href="/products">
               <button className="px-6 py-2 rounded-full border border-purple-500 text-purple-300 font-medium hover:bg-purple-500/20 transition">

@@ -1,4 +1,7 @@
- import Link from "next/link";
+import Link from "next/link";
+import { useCart } from "../context/CartContext";
+
+
 
 type ProductCardProps = {
   id: number;
@@ -8,6 +11,7 @@ type ProductCardProps = {
 };
 
 export default function ProductCard({ id, name, price, image }: ProductCardProps) {
+  const {addToCart} = useCart();
   /* const validImage =
     image && image.startsWith("http")
       ? image
@@ -36,11 +40,15 @@ export default function ProductCard({ id, name, price, image }: ProductCardProps
           <p className="text-[#ffb6c1] text-sm mb-3">${price}</p>
         </div>
 
-        <Link href={`/products/${id}`} className="mt-auto">
+        <Link href={`/products/${id}`} className="mt-auto mb-3">
           <button className="w-full py-2 rounded-full bg-gradient-to-r from-fuchsia-600 via-pink-500 to-purple-600 text-white font-medium text-sm hover:brightness-110 transition-all duration-300 shadow-[0_0_12px_#ff00ff80]">
             View Details ✨
           </button>
         </Link>
+        <button className="w-full py-2 rounded-full bg-gradient-to-r from-fuchsia-600 via-pink-500 to-purple-600 text-white font-medium text-sm hover:brightness-110 transition-all duration-300 shadow-[0_0_12px_#ff00ff80]" 
+          onClick={() => addToCart({id, name, price, image, amount:1})}>
+          Add to Cart ✨
+        </button>
       </div>
     </div>
   );
