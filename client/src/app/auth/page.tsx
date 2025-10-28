@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation'
 interface User {
   id: number;
   email: string;
+  role: 'user' | 'seller';
   createdAt?: string;
 }
 
@@ -15,12 +16,14 @@ interface FormData {
   email: string;
   password: string;
   confirmPassword: string;
+  role: 'user' | 'seller';
 }
 
 interface Errors {
   email?: string;
   password?: string;
   confirmPassword?: string;
+  role?: string;
   submit?: string;
 }
 
@@ -29,7 +32,8 @@ export default function AuthForm() {
   const [formData, setFormData] = useState<FormData>({
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    role: 'user'
   })
   const [errors, setErrors] = useState<Errors>({})
   const [isLoading, setIsLoading] = useState(false)
@@ -40,7 +44,7 @@ export default function AuthForm() {
 
   // Provjeri da li je korisnik već ulogovan
   useEffect(() => {
-    const token = localStorage.getItem('authToken')
+    const token = localStorage.getItem('authToken') // BITNO: 'authToken' a ne 'token'
     const userData = localStorage.getItem('user')
     
     console.log('🔍 useEffect - token:', token);
@@ -52,6 +56,9 @@ export default function AuthForm() {
         setUser(parsedUser)
         setIsAuthenticated(true)
         console.log('✅ Korisnik je već ulogovan:', parsedUser)
+        
+        // Redirect based on role
+        redirectBasedOnRole(parsedUser.role);
       } catch (error) {
         console.error('Error parsing user data:', error)
         localStorage.removeItem('authToken')
@@ -60,14 +67,24 @@ export default function AuthForm() {
     }
   }, [router])
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const redirectBasedOnRole = (role: 'user' | 'seller') => {
+    console.log(`🔄 Redirecting based on role: ${role}`);
+    if (role === 'seller') {
+      router.push('/sellerprofile');
+    } else {
+      router.push('/userProfile');
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
+    console.log(`🔄 Input change: ${name} = ${value}`);
+    
     setFormData(prev => ({
       ...prev,
       [name]: value
     }))
     
-    // Clear error when user starts typing
     if (errors[name as keyof Errors]) {
       setErrors(prev => ({
         ...prev,
@@ -76,17 +93,30 @@ export default function AuthForm() {
     }
   }
 
+  const handleRoleChange = (role: 'user' | 'seller') => {
+    console.log(`🎯 Role change: ${role}`);
+    setFormData(prev => ({
+      ...prev,
+      role: role
+    }))
+    
+    if (errors.role) {
+      setErrors(prev => ({
+        ...prev,
+        role: ''
+      }))
+    }
+  }
+
   const validateForm = (): boolean => {
     const newErrors: Errors = {}
 
-    // Email validation
     if (!formData.email) {
       newErrors.email = 'Email is required'
     } else if (!validateEmail(formData.email)) {
       newErrors.email = 'Please enter a valid email address'
     }
 
-    // Password validation
     if (!formData.password) {
       newErrors.password = 'Password is required'
     } else {
@@ -96,12 +126,15 @@ export default function AuthForm() {
       }
     }
 
-    // Confirm password validation (only for sign up)
     if (!isLogin) {
       if (!formData.confirmPassword) {
         newErrors.confirmPassword = 'Please confirm your password'
       } else if (formData.password !== formData.confirmPassword) {
         newErrors.confirmPassword = 'Passwords do not match'
+      }
+
+      if (!formData.role) {
+        newErrors.role = 'Please select a role'
       }
     }
 
@@ -111,58 +144,59 @@ export default function AuthForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('🎯 1. handleSubmit POZVAN!')
-    console.log('📝 2. Form data:', formData)
+    console.log('🎯 handleSubmit POZVAN!')
+    console.log('📝 Form data:', formData)
     
     setSuccessMessage('')
     setErrors({})
     
     if (!validateForm()) {
-      console.log('❌ 3. Form validation FAILED', errors)
+      console.log('❌ Form validation FAILED', errors)
       return
     }
 
-    console.log('✅ 4. Form validation PASSED')
+    console.log('✅ Form validation PASSED')
     setIsLoading(true)
 
     try {
-      console.log('🔄 5. Počinjem auth proces...')
-      
       let response
       
       if (isLogin) {
-        console.log('🔐 6. Login pokušaj...')
+        console.log('🔐 Login pokušaj...')
         response = await loginUser({
           email: formData.email,
           password: formData.password
         })
       } else {
-        console.log('📝 7. Register pokušaj...')
+        console.log('📝 Register pokušaj...')
         response = await registerUser({
           email: formData.email,
-          password: formData.password
+          password: formData.password,
+          role: formData.role
         })
       }
 
-      console.log('✅ 8. Auth uspješan!', response)
+      console.log('✅ Auth uspješan!', response)
       
-      // Koristi podatke iz response
       setUser(response.user)
       setIsAuthenticated(true)
       
       if (isLogin) {
         setSuccessMessage('Welcome! You are logged in.')
       } else {
-        setSuccessMessage(`You are registered. Welcome ${response.user.email}!`)
+        setSuccessMessage(`You are registered as ${response.user.role}. Welcome ${response.user.email}!`)
       }
 
+      // Redirect immediately
+      console.log('🔄 Redirecting to:', response.user.role);
+      redirectBasedOnRole(response.user.role);
+
     } catch (error) {
-      console.log('❌ 9. Auth greška:', error)
+      console.log('❌ Auth greška:', error)
       setErrors({ 
         submit: (error as Error).message || 'An error occurred. Please try again.' 
       })
     } finally {
-      console.log('🏁 10. Završavam...')
       setIsLoading(false)
     }
   }
@@ -176,13 +210,14 @@ export default function AuthForm() {
     setFormData({
       email: '',
       password: '',
-      confirmPassword: ''
+      confirmPassword: '',
+      role: 'user'
     })
     setSuccessMessage('')
     setErrors({})
+    router.push('/auth')
   }
 
-  // Ako je korisnik autentificiran, prikaži welcome poruku i logout dugme
   if (isAuthenticated && user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -201,16 +236,21 @@ export default function AuthForm() {
             {successMessage}
           </p>
           
-          <p className="text-gray-500 text-sm mb-6">
-            Email: <span className="font-medium">{user.email}</span>
-          </p>
+          <div className="bg-gray-50 rounded-lg p-4 mb-6">
+            <p className="text-gray-500 text-sm">
+              Email: <span className="font-medium">{user.email}</span>
+            </p>
+            <p className="text-gray-500 text-sm mt-1">
+              Role: <span className="font-medium capitalize">{user.role}</span>
+            </p>
+          </div>
 
           <div className="space-y-3">
             <button
-              onClick={() => router.push('/dashboard')}
+              onClick={() => redirectBasedOnRole(user.role)}
               className="w-full bg-gray-900 hover:bg-gray-800 text-white py-2 px-4 rounded-md font-medium transition-colors"
             >
-              Go to Dashboard
+              Go to {user.role === 'seller' ? 'Seller' : 'User'} Dashboard
             </button>
             
             <button
@@ -245,6 +285,75 @@ export default function AuthForm() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Role Selection */}
+          {!isLogin && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                I want to:
+              </label>
+              
+              <div 
+                className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors mb-3 ${
+                  formData.role === 'user' 
+                    ? 'border-blue-500 bg-blue-50' 
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+                onClick={() => handleRoleChange('user')}
+              >
+                <input
+                  type="radio"
+                  id="role-user"
+                  name="role"
+                  value="user"
+                  checked={formData.role === 'user'}
+                  onChange={() => handleRoleChange('user')}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                />
+                <label htmlFor="role-user" className="ml-3 block text-sm font-medium text-gray-700 cursor-pointer">
+                  <div className="flex items-center">
+                    <span className="text-lg mr-2">🛍️</span>
+                    <div>
+                      <div className="font-medium">Shop as Customer</div>
+                      <div className="text-xs text-gray-500 mt-1">Browse and purchase products</div>
+                    </div>
+                  </div>
+                </label>
+              </div>
+
+              <div 
+                className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
+                  formData.role === 'seller' 
+                    ? 'border-blue-500 bg-blue-50' 
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+                onClick={() => handleRoleChange('seller')}
+              >
+                <input
+                  type="radio"
+                  id="role-seller"
+                  name="role"
+                  value="seller"
+                  checked={formData.role === 'seller'}
+                  onChange={() => handleRoleChange('seller')}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                />
+                <label htmlFor="role-seller" className="ml-3 block text-sm font-medium text-gray-700 cursor-pointer">
+                  <div className="flex items-center">
+                    <span className="text-lg mr-2">🏪</span>
+                    <div>
+                      <div className="font-medium">Sell Products</div>
+                      <div className="text-xs text-gray-500 mt-1">Create your own store and sell products</div>
+                    </div>
+                  </div>
+                </label>
+              </div>
+
+              {errors.role && (
+                <p className="mt-2 text-sm text-red-600">{errors.role}</p>
+              )}
+            </div>
+          )}
+
           {/* Email */}
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
@@ -291,7 +400,7 @@ export default function AuthForm() {
             )}
           </div>
 
-          {/* Confirm Password (only for sign up) */}
+          {/* Confirm Password */}
           {!isLogin && (
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
@@ -316,14 +425,12 @@ export default function AuthForm() {
             </div>
           )}
 
-          {/* Submit Error */}
           {errors.submit && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-md">
               <p className="text-red-700 text-sm">{errors.submit}</p>
             </div>
           )}
 
-          {/* Button */}
           <div className="pt-2">
             <button
               type="submit"
@@ -341,6 +448,9 @@ export default function AuthForm() {
               setIsLogin(!isLogin)
               setErrors({})
               setSuccessMessage('')
+              if (isLogin) {
+                setFormData(prev => ({ ...prev, role: 'user' }))
+              }
             }}
             className="text-gray-600 hover:text-gray-800 text-sm transition-colors"
           >

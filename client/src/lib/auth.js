@@ -1,17 +1,11 @@
-// src/lib/auth.js
 
-// PROBLEM: process.env ne radi u browseru - hardkodiraj URL
+
+
 const API_BASE_URL = 'http://localhost:3001/api';
-// Ili koristi window.location za dinamički URL:
-// const API_BASE_URL = typeof window !== 'undefined' 
-//   ? `${window.location.protocol}//${window.location.hostname}:3001/api`
-//   : 'http://localhost:3001/api';
 
 console.log('🔧 API_BASE_URL:', API_BASE_URL);
 
-/**
- * Registruje novog korisnika
- */
+
 export async function registerUser(userData) {
   try {
     console.log('🎯 registerUser FUNKCIJA POZVANA!');
@@ -38,7 +32,7 @@ export async function registerUser(userData) {
     const data = await response.json();
     console.log('✅ Server response:', data);
 
-    // Sačuvaj token
+   
     if (data.token && typeof window !== 'undefined') {
       localStorage.setItem('authToken', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
@@ -53,9 +47,7 @@ export async function registerUser(userData) {
   }
 }
 
-/**
- * Loguje postojećeg korisnika
- */
+
 export async function loginUser(credentials) {
   try {
     console.log('🔐 loginUser FUNKCIJA POZVANA!');
@@ -93,7 +85,7 @@ export async function loginUser(credentials) {
   }
 }
 
-// Ostale funkcije ostaju iste...
+
 export function logoutUser() {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('authToken');
