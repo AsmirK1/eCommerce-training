@@ -21,4 +21,3 @@ export function getDB() {
   if (!db) throw new Error("❌ Database not connected yet!");
   return db;
 }
-
